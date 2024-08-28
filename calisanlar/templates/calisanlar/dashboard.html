@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        .dashboard {
+            display: flex;
+            height: 100vh;
+        }
+
+        
+
+        .menu-item {
+            width: 40px;
+            height: 40px;
+            background-color: #ffffff;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .content {
+            flex: 1;
+            display: grid;
+            grid-template-columns: auto auto; /* Two columns */
+            grid-template-rows: auto auto; /* Adjust row height as needed */
+            gap: 10px;
+            padding: 10px 20px; /* Reduced top padding to bring content closer to the top */
+            margin: 0;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Specific styles for the chart cards */
+        .square-card {
+            height: 300px;
+            width: 300px;
+
+
+        }
+
+        .rectangular-card {
+            height: 300px; /* Taller for rectangular charts */
+        }
+
+        .chart-card canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        
+        <div class="content">
+            <!-- Yaş and Maaş charts should remain square -->
+            <div class="card chart-card square-card">
+                <canvas id="yasChart"></canvas> <!-- Yaş chart -->
+            </div>
+            <!-- Departman and Şehir charts should be rectangular and taller -->
+            <div class="card chart-card rectangular-card">
+                <canvas id="departmanChart"></canvas> <!-- Departman chart -->
+            </div>
+            <div class="card chart-card rectangular-card">
+                <canvas id="sehirChart"></canvas> <!-- Şehir chart -->
+            </div>
+            <div class="card chart-card square-card">
+                <canvas id="maasChart"></canvas> <!-- Maaş chart -->
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // Departman Verileri
+        var departmanData = {
+            labels: [{% for item in departman_verileri %} '{{ item.departman }}' {% if not forloop.last %}, {% endif %}{% endfor %}],
+            datasets: [{
+                label: 'Çalışan Sayısı',
+                data: [{% for item in departman_verileri %} {{ item.sayi }} {% if not forloop.last %}, {% endif %}{% endfor %}],
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            }]
+        };
+
+        // Şehir Verileri
+        var sehirData = {
+            labels: [{% for item in sehir_verileri %} '{{ item.sehir }}' {% if not forloop.last %}, {% endif %}{% endfor %}],
+            datasets: [{
+                label: 'Çalışan Sayısı',
+                data: [{% for item in sehir_verileri %} {{ item.sayi }} {% if not forloop.last %}, {% endif %}{% endfor %}],
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 1
+            }]
+        };
+
+        // Yaş Verileri
+        var yasData = {
+            labels: [{% for item in yas_verileri %} '{{ item.kategori }}' {% if not forloop.last %}, {% endif %}{% endfor %}],
+            datasets: [{
+                label: 'Çalışan Sayısı',
+                data: [{% for item in yas_verileri %} {{ item.sayi }} {% if not forloop.last %}, {% endif %}{% endfor %}],
+                backgroundColor: [
+                    'rgba(54, 162, 235, 0.2)',
+                    'rgba(255, 206, 86, 0.2)',
+                    'rgba(75, 192, 192, 0.2)',
+                    'rgba(153, 102, 255, 0.2)',
+                    'rgba(255, 159, 64, 0.2)',
+                    'rgba(199, 199, 199, 0.2)'
+                ],
+                borderColor: [
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 206, 86, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(153, 102, 255, 1)',
+                    'rgba(255, 159, 64, 1)',
+                    'rgba(159, 159, 159, 1)'
+                ],
+                borderWidth: 1
+            }]
+        };
+
+        // Maaş Verileri
+        var maasData = {
+            labels: [{% for item in maas_verileri %} '{{ item.kategori }}' {% if not forloop.last %}, {% endif %}{% endfor %}],
+            datasets: [{
+                label: 'Çalışan Sayısı',
+                data: [{% for item in maas_verileri %} {{ item.sayi }} {% if not forloop.last %}, {% endif %}{% endfor %}],
+                backgroundColor: [
+                    'rgba(255, 159, 64, 0.2)',
+                    'rgba(153, 102, 255, 0.2)',
+                    'rgba(255, 205, 86, 0.2)',
+                    'rgba(75, 192, 192, 0.2)',
+                    'rgba(54, 162, 235, 0.2)',
+                    'rgba(255, 99, 132, 0.2)',
+                    'rgba(201, 203, 207, 0.2)'
+                ],
+                borderColor: [
+                    'rgba(255, 159, 64, 1)',
+                    'rgba(153, 102, 255, 1)',
+                    'rgba(255, 205, 86, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(201, 203, 207, 1)'
+                ],
+                borderWidth: 1
+            }]
+        };
+
+        // Departman Grafiği
+        var ctx = document.getElementById('departmanChart').getContext('2d');
+        var departmanChart = new Chart(ctx, {
+            type: 'bar',
+            data: departmanData,
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Şehir Grafiği
+        var ctx2 = document.getElementById('sehirChart').getContext('2d');
+        var sehirChart = new Chart(ctx2, {
+            type: 'bar',
+            data: sehirData,
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Yaş Grafiği
+        var yasChart = new Chart(document.getElementById('yasChart').getContext('2d'), {
+            type: 'doughnut',
+            data: yasData,
+            options: {}
+        });
+
+        // Maaş Grafiği
+        var maasChart = new Chart(document.getElementById('maasChart').getContext('2d'), {
+            type: 'doughnut',
+            data: maasData,
+            options: {}
+        });
+    </script>
+</body>
+</html>

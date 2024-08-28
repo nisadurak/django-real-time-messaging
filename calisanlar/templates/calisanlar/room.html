@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Oda: {{ room_name }}</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #eceff1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        #chat-container {
+            width: 60%;
+            max-width: 700px;
+            margin: 20px;
+            padding: 20px;
+            border-radius: 40px;
+            background: linear-gradient(135deg, #ffffff, #e3f2fd);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        #nav-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        #nav-bar a {
+            text-decoration: none;
+            color: #007bff;
+            font-weight: bold;
+        }
+
+        #chat-log {
+            height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.05);
+            border: 1px solid #ddd;
+        }
+
+        #chat-log b {
+            color: #007bff;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 8px;
+            background-color: #f1f8e9;
+            border-radius: 5px;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .message.mine {
+            background-color: #e3f2fd;
+            text-align: right;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        #chat-message-input {
+            width: calc(100% - 130px);
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 30px;
+            outline: none;
+            margin-right: 10px;
+            transition: border-color 0.3s;
+        }
+
+        #chat-message-input:focus {
+            border-color: #007bff;
+        }
+
+        #chat-message-submit {
+            padding: 12px 25px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        #chat-message-submit:hover {
+            background-color: #0056b3;
+        }
+
+        .status-message {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .success {
+            color: green;
+        }
+
+        .error {
+            color: red;
+        }
+
+        .warning {
+            color: orange;
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <div id="nav-bar">
+            <h1>Oda: {{ room_name }}</h1>
+            <a href="{% url 'dashboard' %}">Dashboard</a> <!-- Dashboard bağlantısı eklendi -->
+        </div>
+
+        {% if user.is_authenticated %}
+            <div id="chat-log">
+                {% for message in messages %}
+                    <div class="message {% if message.user.username == user.username %}mine{% endif %}">
+                        <b>{{ message.user.username }}</b>: {{ message.content }}
+                    </div>
+                {% endfor %}
+            </div>
+            <div style="display:flex; align-items:center;">
+                <input id="chat-message-input" type="text" placeholder="Mesajınızı yazın...">
+                <button id="chat-message-submit">Gönder</button>
+            </div>
+        {% else %}
+            <p>Mesajlaşma odasına katılmak için giriş yapmalısınız.</p>
+            <a href="{% url 'login' %}">Giriş Yap</a>
+        {% endif %}
+    </div>
+
+    {% if user.is_authenticated %}
+    <script>
+        const roomName = "{{ room_name }}";
+        const username = "{{ user.username }}";
+        const chatSocket = new WebSocket(
+            (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + '/ws/chat/' + roomName + '/'
+        );
+
+        chatSocket.onopen = function(e) {
+            console.log('WebSocket bağlantısı kuruldu.');
+            document.querySelector('#chat-log').innerHTML += '<div class="status-message success">Bağlantı kuruldu.</div>';
+        };
+
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            document.querySelector('#chat-log').innerHTML += '<b>' + data.username + '</b>: ' + data.message + '<br>';
+            document.querySelector('#chat-log').scrollTop = document.querySelector('#chat-log').scrollHeight;
+        };
+
+        chatSocket.onerror = function(e) {
+            console.error('WebSocket hatası:', e);
+            document.querySelector('#chat-log').innerHTML += '<div class="status-message error">Bir hata oluştu. Lütfen yeniden deneyin.</div>';
+        };
+
+        chatSocket.onclose = function(e) {
+            console.warn('WebSocket bağlantısı kapandı.');
+            document.querySelector('#chat-log').innerHTML += '<div class="status-message warning">Bağlantı kapandı.</div>';
+        };
+
+        document.querySelector('#chat-message-input').focus();
+        document.querySelector('#chat-message-input').onkeyup = function(e) {
+            if (e.keyCode === 13) {
+                document.querySelector('#chat-message-submit').click();
+            }
+        };
+
+        document.querySelector('#chat-message-submit').onclick = function(e) {
+            const messageInputDom = document.querySelector('#chat-message-input');
+            const message = messageInputDom.value;
+            chatSocket.send(JSON.stringify({
+                'username': username,
+                'message': message
+            }));
+            messageInputDom.value = '';
+        };
+    </script>
+    {% endif %}
+</body>
+</html>
